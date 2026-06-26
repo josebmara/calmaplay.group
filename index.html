@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalmaPlay — Relájate, juega y respira</title>
+<meta name="description" content="CalmaPlay es una plataforma web con minijuegos, ejercicios de respiración, música ambiental y recompensas para ayudar a estudiantes a reducir el estrés y la ansiedad.">
+<style>
+/* ====================================================================
+   CALMAPLAY — Sistema de diseño
+   Paleta: morados y azules pastel (calma/estabilidad) + verde (bienestar)
+            + dorado (logro, solo en recompensas)
+   Tipografía: Baloo 2 (display, redondeada y amigable) + Nunito (texto)
+            + JetBrains Mono (puntajes / datos numéricos, look "HUD")
+   ==================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  /* color */
+  --bg: #FBFAFE;
+  --bg-soft: #F4F0FF;
+  --lavender: #EDE6FF;
+  --sky: #DFF3FF;
+  --violet: #6E4CFF;
+  --violet-deep: #5436D6;
+  --violet-ink: #2B2640;
+  --green: #45B08C;
+  --green-soft: #DCF3E8;
+  --gold: #F0B429;
+  --gold-soft: #FBE8C0;
+  --ink: #2B2640;
+  --ink-soft: #6E6885;
+  --white: #FFFFFF;
+  --danger: #E0654C;
+
+  /* type */
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* shape */
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --shadow-soft: 0 16px 40px -16px rgba(110, 76, 255, 0.28);
+  --shadow-tight: 0 6px 18px -8px rgba(43, 38, 64, 0.18);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  color: var(--violet-ink);
+  line-height: 1.15;
+}
+
+p { margin: 0; line-height: 1.55; color: var(--ink-soft); }
+
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Respeta usuarios con preferencia de menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Header / navegación
+   --------------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(251, 250, 254, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(110, 76, 255, 0.08);
+}
+
+.site-header__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--violet-deep);
+}
+
+.brand__blob {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--white);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: var(--shadow-tight);
+}
+
+.nav-pill a {
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: var(--ink-soft);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-pill a:hover { color: var(--violet-deep); }
+.nav-pill a.is-active { background: var(--violet); color: var(--white); }
+
+.header__actions { display: flex; align-items: center; gap: 12px; }
+
+.points-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold-soft);
+  color: #8A5B00;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+.nav-toggle { display: none; }
+
+@media (max-width: 760px) {
+  .nav-pill { position: fixed; left: 16px; right: 16px; bottom: 16px; justify-content: space-around; box-shadow: var(--shadow-soft); }
+  .nav-pill a { padding: 10px 8px; font-size: 12px; }
+  .header__actions .points-chip { font-size: 12px; padding: 6px 10px; }
+}
+
+/* ---------------------------------------------------------------
+   Botones
+   --------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.btn:focus-visible { outline: 3px solid var(--violet-deep); outline-offset: 3px; }
+.btn:active { transform: translateY(1px) scale(0.99); }
+
+.btn--primary { background: var(--violet); color: var(--white); box-shadow: var(--shadow-soft); }
+.btn--primary:hover { background: var(--violet-deep); transform: translateY(-1px); }
+
+.btn--ghost { background: var(--white); color: var(--violet-deep); box-shadow: var(--shadow-tight); }
+.btn--ghost:hover { transform: translateY(-1px); }
+
+.btn--outline { background: transparent; color: var(--violet-deep); border: 2px solid var(--lavender); }
+.btn--outline:hover { border-color: var(--violet); }
+
+.btn--block { width: 100%; }
+
+.btn[disabled] {
+  background: #ECEAF3;
+  color: #A6A1BD;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------
+   Tarjetas
+   --------------------------------------------------------------- */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-tight);
+  padding: 28px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.tag--easy { background: var(--green-soft); color: #1E7A57; }
+.tag--medium { background: var(--sky); color: #1C6FA8; }
+.tag--hard { background: #FFE1D6; color: #B8482B; }
+.tag--soon { background: #ECEAF3; color: #6E6885; }
+
+/* ---------------------------------------------------------------
+   Hero blob (mascota de CalmaPlay)
+   --------------------------------------------------------------- */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.blob-mascot { animation: breathe 4s ease-in-out infinite; }
+
+/* ---------------------------------------------------------------
+   Secciones genéricas
+   --------------------------------------------------------------- */
+.page-hero {
+  padding: 56px 0 40px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+.section { padding: 64px 0; }
+.section--soft { background: var(--bg-soft); }
+
+.grid {
+  display: grid;
+  gap: 20px;
+}
+
+.grid--2 { grid-template-columns: repeat(2, 1fr); }
+.grid--3 { grid-template-columns: repeat(3, 1fr); }
+.grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 900px) {
+  .grid--3, .grid--4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .grid--2, .grid--3, .grid--4 { grid-template-columns: 1fr; }
+}
+
+.site-footer {
+  padding: 40px 24px 120px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+@media (min-width: 761px) {
+  .site-footer { padding-bottom: 40px; }
+}
+
+.site-footer strong { color: var(--violet-deep); }
+
+/* ---------------------------------------------------------------
+   Recompensas
+   --------------------------------------------------------------- */
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+.progress-bar__fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--violet), var(--gold));
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.reward-card { text-align: center; transition: transform 0.18s ease; }
+.reward-card__icon {
+  width: 56px; height: 56px;
+  margin: 0 auto;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  background: var(--bg-soft);
+}
+.reward-card.is-unlocked {
+  border: 2px solid var(--gold);
+  box-shadow: 0 12px 30px -14px rgba(240, 180, 41, 0.45);
+}
+.reward-card.is-unlocked .reward-card__icon { background: var(--gold-soft); }
+.reward-card.is-locked { opacity: 0.7; }
+
+/* ---------------------------------------------------------------
+   Música
+   --------------------------------------------------------------- */
+.volume-card { display: flex; align-items: center; gap: 16px; padding: 18px 24px; }
+.volume-card input[type="range"] { flex: 1; accent-color: var(--violet); }
+
+.music-card__play {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--violet);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.music-card__play:hover { background: var(--violet-deep); }
+
+.music-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 28px;
+  margin-top: 18px;
+}
+.music-eq span {
+  width: 5px;
+  height: 6px;
+  background: var(--lavender);
+  border-radius: 3px;
+}
+.music-eq.is-playing span {
+  background: var(--violet);
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+.music-eq.is-playing span:nth-child(2) { animation-delay: 0.1s; }
+.music-eq.is-playing span:nth-child(3) { animation-delay: 0.2s; }
+.music-eq.is-playing span:nth-child(4) { animation-delay: 0.3s; }
+.music-eq.is-playing span:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes eq-bounce {
+  0%, 100% { height: 6px; }
+  50% { height: 26px; }
+}
+
+/* ---------------------------------------------------------------
+   Ejercicios
+   --------------------------------------------------------------- */
+.exercise-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.exercise-card { display: flex; flex-direction: column; }
+
+.exercise-timer {
+  position: sticky;
+  top: 96px;
+  text-align: center;
+}
+
+.exercise-timer__circle {
+  width: 120px; height: 120px;
+  margin: 20px auto;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--violet), #6FB8FF);
+  transition: transform 1s linear;
+}
+
+.exercise-timer__clock {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--violet-deep);
+}
+
+@media (max-width: 900px) {
+  .exercise-layout { grid-template-columns: 1fr; }
+  .exercise-timer { position: static; }
+}
+
+/* ---------------------------------------------------------------
+   Minijuego: Encuentra la Calma
+   --------------------------------------------------------------- */
+.find-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.find-cell {
+  aspect-ratio: 1 / 1;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+.find-cell:hover { transform: translateY(-2px); }
+.find-cell.is-done { cursor: default; opacity: 0.55; }
+.find-cell.is-calm { background: var(--green-soft); }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.find-cell.is-shake { animation: shake 0.3s ease; background: #FFE1D6; }
+
+@media (max-width: 480px) {
+  .find-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* ---------------------------------------------------------------
+   Minijuego: Memoria Zen
+   --------------------------------------------------------------- */
+.memory-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+}
+.memory-stats__value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--violet-deep);
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.memory-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  perspective: 800px;
+  padding: 0;
+}
+
+.memory-card__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  border-radius: 16px;
+  backface-visibility: hidden;
+  transition: transform 0.4s ease;
+}
+
+.memory-card__face--back {
+  background: linear-gradient(160deg, var(--violet), #6FB8FF);
+  color: #fff;
+  transform: rotateY(0deg);
+}
+
+.memory-card__face--front {
+  background: var(--white);
+  box-shadow: var(--shadow-tight);
+  transform: rotateY(180deg);
+}
+
+.memory-card.is-flipped .memory-card__face--back,
+.memory-card.is-matched .memory-card__face--back { transform: rotateY(180deg); }
+
+.memory-card.is-flipped .memory-card__face--front,
+.memory-card.is-matched .memory-card__face--front { transform: rotateY(0deg); }
+
+.memory-card.is-matched .memory-card__face--front { background: var(--green-soft); }
+
+/* ---------------------------------------------------------------
+   Minijuego: Respira y Gana
+   --------------------------------------------------------------- */
+.breathing-screen { padding-top: 48px; padding-bottom: 80px; }
+
+.breathing-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.breath-blob { transition: transform 4s ease-in-out; }
+
+.breathing-stage__label {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--violet-deep);
+  min-height: 30px;
+}
+
+.cycle-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--lavender);
+  display: inline-block;
+}
+.cycle-dot.is-done { background: var(--violet); }
+
+/* ---------------------------------------------------------------
+   Tarjetas de minijuegos
+   --------------------------------------------------------------- */
+.game-card__icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+
+/* ---------------------------------------------------------------
+   Dashboard
+   --------------------------------------------------------------- */
+.dash-card {
+  text-decoration: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.dash-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-soft); }
+.dash-card__icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+
+/* ---------------------------------------------------------------
+   Formularios
+   --------------------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.field label {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--violet-ink);
+}
+
+.field input, .field select {
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 13px 16px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--lavender);
+  background: var(--bg-soft);
+  color: var(--ink);
+}
+
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--violet);
+  background: var(--white);
+}
+
+.form-note {
+  font-size: 13px;
+  text-align: center;
+  margin-top: 14px;
+}
+
+.form-note a { color: var(--violet-deep); font-weight: 800; }
+
+/* ---------------------------------------------------------------
+   Login / registro
+   --------------------------------------------------------------- */
+.login-shell {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+
+.login-shell__side {
+  background: linear-gradient(160deg, var(--violet) 0%, #6FB8FF 100%);
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-shell__list {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.login-shell__form {
+  border-radius: 0;
+  padding: 44px 40px;
+}
+
+.tabs { display: flex; gap: 6px; background: var(--bg-soft); border-radius: 999px; padding: 5px; margin-bottom: 28px; }
+.tabs__btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 11px 0;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.tabs__btn.is-active { background: var(--white); color: var(--violet-deep); box-shadow: var(--shadow-tight); }
+
+.quick-demo {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--lavender);
+  text-align: center;
+}
+.quick-demo__label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.quick-demo__row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.quick-demo__chip {
+  border: 2px solid var(--lavender);
+  background: var(--white);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--violet-deep);
+  cursor: pointer;
+}
+.quick-demo__chip:hover { border-color: var(--violet); }
+
+@media (max-width: 760px) {
+  .login-shell { grid-template-columns: 1fr; }
+  .login-shell__side { padding: 32px 28px; }
+  .login-shell__form { padding: 32px 24px; }
+}
+
+/* ---------------------------------------------------------------
+   Utilidades
+   --------------------------------------------------------------- */
+.text-center { text-align: center; }
+.muted { color: var(--ink-soft); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; align-items: center; gap: 12px; }
+.row--between { justify-content: space-between; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mt-32 { margin-top: 32px; }
+.hidden { display: none !important; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+
+/* ---------------------------------------------------------------
+   Vistas (secciones) de la página única
+   --------------------------------------------------------------- */
+.view { display: none; }
+.view.is-active { display: block; }
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header__bar">
+    <a class="brand" href="#" data-view="inicio">
+      <svg class="brand__blob" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path fill="#6E4CFF" d="M155.6,28.7C172.5,45.8,180,73.4,176.8,99.6C173.6,125.8,159.7,150.6,138,165.9C116.3,181.2,86.8,187,61.2,178.6C35.6,170.2,13.9,147.6,5.4,120.7C-3.1,93.8,1.8,62.6,19.6,40.6C37.4,18.6,68.1,5.8,97.7,4.4C127.3,3,138.7,11.6,155.6,28.7Z"/>
+      </svg>
+      CalmaPlay
+    </a>
+    <nav class="nav-pill" aria-label="Navegación principal">
+      <a href="#" data-view="inicio">Inicio</a>
+      <a href="#" data-view="dashboard" id="nav-panel" class="hidden">Mi panel</a>
+      <a href="#" data-view="juegos">Juegos</a>
+      <a href="#" data-view="ejercicios">Ejercicios</a>
+      <a href="#" data-view="musica">Música</a>
+      <a href="#" data-view="recompensas">Recompensas</a>
+    </nav>
+    <div class="header__actions">
+      <span id="auth-guest"><a class="btn btn--ghost" href="#" data-view="login">Iniciar sesión</a></span>
+      <span id="auth-user" class="row hidden">
+        <span class="points-chip">🏆 <span data-points-display>0 pts</span></span>
+        <a class="btn btn--ghost" href="#" id="logout-btn">Salir</a>
+      </span>
+    </div>
+  </div>
+</header>
+
+<main>
+<section id="view-inicio" class="view is-active">
+  <section class="page-hero">
+    <div class="container" style="display:flex; align-items:center; gap:56px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:300px;">
+        <span class="eyebrow">Bienestar digital para jóvenes</span>
+        <h1 style="font-size:48px; margin-top:10px;">Encuentra tu calma,<br>un nivel a la vez.</h1>
+        <p style="font-size:18px; margin-top:18px; max-width:480px;">
+          CalmaPlay combina minijuegos, ejercicios de respiración y música
+          ambiental en un solo espacio para que estudiantes y jóvenes bajen
+          el estrés, mejoren la concentración y ganen recompensas mientras
+          se relajan.
+        </p>
+        <div class="row mt-32" style="flex-wrap:wrap;">
+          <a class="btn btn--primary" href="#" data-view="login">Comenzar ahora</a>
+          <a class="btn btn--outline" href="#como-funciona">Cómo funciona</a>
+        </div>
+      </div>
+      <div style="flex:1; min-width:280px; display:flex; justify-content:center;">
+        <svg class="blob-mascot" width="260" height="260" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mascota de CalmaPlay respirando con calma">
+          <defs>
+            <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8F73FF"/>
+              <stop offset="100%" stop-color="#6FD3FF"/>
+            </linearGradient>
+          </defs>
+          <path fill="url(#heroGradient)" d="M155.6,28.7C172.5,45.8,180,73.4,176.8,99.6C173.6,125.8,159.7,150.6,138,165.9C116.3,181.2,86.8,187,61.2,178.6C35.6,170.2,13.9,147.6,5.4,120.7C-3.1,93.8,1.8,62.6,19.6,40.6C37.4,18.6,68.1,5.8,97.7,4.4C127.3,3,138.7,11.6,155.6,28.7Z"/>
+          <path d="M70 95 Q80 85 90 95" stroke="#2B2640" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M110 95 Q120 85 130 95" stroke="#2B2640" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M85 122 Q100 134 115 122" stroke="#2B2640" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--soft" id="como-funciona">
+    <div class="container">
+      <h2 class="text-center" style="font-size:32px;">Cómo te ayuda CalmaPlay</h2>
+      <p class="text-center" style="max-width:520px; margin:14px auto 0;">Cuatro espacios pensados para distintos momentos de tu día.</p>
+
+      <div class="grid grid--4 mt-32">
+        <a class="card" href="#" data-view="juegos" style="text-decoration:none;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--lavender);display:flex;align-items:center;justify-content:center;font-size:24px;">🎮</div>
+          <h3 style="font-size:18px;margin-top:16px;">Minijuegos</h3>
+          <p class="mt-8" style="font-size:14px;">Memoria, concentración y relajación en partidas cortas que suman puntos.</p>
+        </a>
+        <a class="card" href="#" data-view="ejercicios" style="text-decoration:none;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:24px;">🌿</div>
+          <h3 style="font-size:18px;margin-top:16px;">Ejercicios</h3>
+          <p class="mt-8" style="font-size:14px;">Respiración guiada, relajación muscular y mindfulness paso a paso.</p>
+        </a>
+        <a class="card" href="#" data-view="musica" style="text-decoration:none;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--sky);display:flex;align-items:center;justify-content:center;font-size:24px;">🎵</div>
+          <h3 style="font-size:18px;margin-top:16px;">Música relajante</h3>
+          <p class="mt-8" style="font-size:14px;">Ambientes sonoros pensados para acompañar momentos de calma.</p>
+        </a>
+        <a class="card" href="#" data-view="recompensas" style="text-decoration:none;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:24px;">🏆</div>
+          <h3 style="font-size:18px;margin-top:16px;">Recompensas</h3>
+          <p class="mt-8" style="font-size:14px;">Cada actividad suma puntos que desbloquean temas, avatares y más.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container" style="display:flex; gap:56px; flex-wrap:wrap; align-items:center;">
+      <div style="flex:1; min-width:300px;">
+        <span class="eyebrow">Por qué existe CalmaPlay</span>
+        <h2 style="font-size:30px; margin-top:10px;">Una pausa diseñada para estudiantes.</h2>
+        <p class="mt-16">
+          Muchos jóvenes enfrentan estrés, ansiedad y dificultad para concentrarse
+          por las exigencias académicas y personales. CalmaPlay propone una
+          alternativa moderna y accesible: un espacio interactivo al que se
+          entra desde cualquier dispositivo, sin instalar nada, para liberar
+          tensión a través del juego.
+        </p>
+      </div>
+      <div style="flex:1; min-width:280px;" class="grid grid--2">
+        <div class="card" style="padding:22px;">
+          <div class="eyebrow">Resultado de aprendizaje</div>
+          <h3 style="font-size:20px;margin-top:8px;">583540</h3>
+          <p class="mt-8" style="font-size:13px;">Aplicación de competencias del programa en un problema real del sector productivo.</p>
+        </div>
+        <div class="card" style="padding:22px;">
+          <div class="eyebrow">Programa</div>
+          <h3 style="font-size:20px;margin-top:8px;">Técnico en Programación de Software</h3>
+          <p class="mt-8" style="font-size:13px;">Soluciones informáticas a la medida de las dinámicas educativas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<section id="view-login" class="view section" style="padding-top:40px;">
+  <div class="container" style="max-width:920px;">
+    <div class="login-shell">
+
+      <div class="login-shell__side">
+        <svg width="84" height="84" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#FFFFFF" fill-opacity="0.9" d="M155.6,28.7C172.5,45.8,180,73.4,176.8,99.6C173.6,125.8,159.7,150.6,138,165.9C116.3,181.2,86.8,187,61.2,178.6C35.6,170.2,13.9,147.6,5.4,120.7C-3.1,93.8,1.8,62.6,19.6,40.6C37.4,18.6,68.1,5.8,97.7,4.4C127.3,3,138.7,11.6,155.6,28.7Z"/>
+          <path d="M70 95 Q80 85 90 95" stroke="#5436D6" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M110 95 Q120 85 130 95" stroke="#5436D6" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M85 122 Q100 134 115 122" stroke="#5436D6" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </svg>
+        <h2 style="color:#fff; font-size:26px; margin-top:18px;">Tu progreso te espera</h2>
+        <p style="color:rgba(255,255,255,0.88); margin-top:10px;">
+          Inicia sesión para guardar tus puntos, desbloquear recompensas y
+          continuar donde lo dejaste.
+        </p>
+        <ul class="login-shell__list">
+          <li>🎮 Minijuegos de concentración y memoria</li>
+          <li>🌬️ Ejercicios de respiración guiada</li>
+          <li>🎵 Música y sonidos ambientales</li>
+          <li>🏆 Recompensas por tu constancia</li>
+        </ul>
+      </div>
+
+      <div class="login-shell__form card">
+        <div class="tabs" role="tablist">
+          <button class="tabs__btn is-active" id="tab-login" role="tab" aria-selected="true">Iniciar sesión</button>
+          <button class="tabs__btn" id="tab-register" role="tab" aria-selected="false">Registrarse</button>
+        </div>
+
+        <form id="form-login" novalidate>
+          <div class="field">
+            <label for="login-email">Correo electrónico</label>
+            <input id="login-email" type="email" placeholder="tucorreo@gmail.com" required>
+          </div>
+          <div class="field">
+            <label for="login-pass">Contraseña</label>
+            <input id="login-pass" type="password" placeholder="••••••••" required>
+          </div>
+          <p id="login-error" class="hidden" style="color:var(--danger); font-size:13px; margin-bottom:12px;">Completa tu correo y contraseña para continuar.</p>
+          <button type="submit" class="btn btn--primary btn--block">Ingresar</button>
+        </form>
+
+        <form id="form-register" class="hidden" novalidate>
+          <div class="field">
+            <label for="reg-nombre">Nombre</label>
+            <input id="reg-nombre" type="text" placeholder="Tu nombre" required>
+          </div>
+          <div class="field">
+            <label for="reg-edad">Edad</label>
+            <input id="reg-edad" type="number" min="10" max="99" placeholder="17" required>
+          </div>
+          <div class="field">
+            <label for="reg-email">Correo electrónico</label>
+            <input id="reg-email" type="email" placeholder="tucorreo@gmail.com" required>
+          </div>
+          <div class="field">
+            <label for="reg-pass">Contraseña</label>
+            <input id="reg-pass" type="password" placeholder="Mínimo 4 caracteres" required>
+          </div>
+          <p id="register-error" class="hidden" style="color:var(--danger); font-size:13px; margin-bottom:12px;">Revisa los campos: faltan datos o la contraseña es muy corta.</p>
+          <button type="submit" class="btn btn--primary btn--block">Crear cuenta</button>
+        </form>
+
+        <p class="form-note muted">Tu cuenta y tus puntos se guardan de verdad: puedes cerrar la pestaña y volver a iniciar sesión cuando quieras.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="view-dashboard" class="view section" style="padding-top:48px;">
+  <div class="container">
+
+    <div class="row row--between" style="flex-wrap:wrap; gap:24px;">
+      <div>
+        <span class="eyebrow">Tu espacio de calma</span>
+        <h1 style="font-size:34px; margin-top:10px;">Hola, <span data-name-display>Invitado</span> 👋</h1>
+        <p class="mt-8" data-guest-hide>Listo para tu próxima pausa. Elige por dónde quieres continuar.</p>
+        <p class="mt-8 hidden" data-guest-show style="color:var(--danger);">Estás navegando como invitado. <a href="#" data-view="login" style="color:var(--violet-deep); font-weight:800;">Inicia sesión</a> para guardar tu progreso.</p>
+      </div>
+      <div class="card" style="padding:18px 24px; display:flex; align-items:center; gap:14px;">
+        <svg width="48" height="48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="blob-mascot">
+          <path fill="#6E4CFF" d="M155.6,28.7C172.5,45.8,180,73.4,176.8,99.6C173.6,125.8,159.7,150.6,138,165.9C116.3,181.2,86.8,187,61.2,178.6C35.6,170.2,13.9,147.6,5.4,120.7C-3.1,93.8,1.8,62.6,19.6,40.6C37.4,18.6,68.1,5.8,97.7,4.4C127.3,3,138.7,11.6,155.6,28.7Z"/>
+        </svg>
+        <div>
+          <div class="eyebrow">Puntos totales</div>
+          <div style="font-family:var(--font-mono); font-size:26px; font-weight:700; color:var(--violet-deep);" data-points-display>0 pts</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid--4 mt-32">
+      <a class="card dash-card" href="#" data-view="juegos">
+        <div class="dash-card__icon" style="background:var(--lavender);">🎮</div>
+        <h3 style="font-size:18px; margin-top:14px;">Minijuegos</h3>
+        <p class="mt-8" style="font-size:14px;">Memoria, respiración y concentración en partidas cortas.</p>
+      </a>
+      <a class="card dash-card" href="#" data-view="ejercicios">
+        <div class="dash-card__icon" style="background:var(--green-soft);">🌿</div>
+        <h3 style="font-size:18px; margin-top:14px;">Ejercicios</h3>
+        <p class="mt-8" style="font-size:14px;">Relajación guiada paso a paso, con temporizador.</p>
+      </a>
+      <a class="card dash-card" href="#" data-view="musica">
+        <div class="dash-card__icon" style="background:var(--sky);">🎵</div>
+        <h3 style="font-size:18px; margin-top:14px;">Música</h3>
+        <p class="mt-8" style="font-size:14px;">Ambientes sonoros para acompañar tu pausa.</p>
+      </a>
+      <a class="card dash-card" href="#" data-view="recompensas">
+        <div class="dash-card__icon" style="background:var(--gold-soft);">🏆</div>
+        <h3 style="font-size:18px; margin-top:14px;">Recompensas</h3>
+        <p class="mt-8" style="font-size:14px;">Revisa qué puedes desbloquear con tus puntos.</p>
+      </a>
+    </div>
+
+    <div class="card mt-32" style="padding:28px;">
+      <div class="row row--between">
+        <h3 style="font-size:18px;">Sugerencia de hoy</h3>
+        <span class="tag tag--easy">Fácil · 5 min</span>
+      </div>
+      <p class="mt-8">Empieza con el ejercicio <strong>Respiración 4-7-8</strong>: solo toma cinco minutos y es la forma más rápida de bajar la ansiedad antes de estudiar.</p>
+      <a class="btn btn--primary mt-16" href="#" data-view="respiracion">Hacer el ejercicio</a>
+    </div>
+
+  </div>
+</section>
+
+<section id="view-juegos" class="view section" style="padding-top:48px;">
+  <div class="container">
+    <span class="eyebrow">Catálogo de minijuegos</span>
+    <h1 style="font-size:32px; margin-top:10px;">Elige cómo quieres relajarte</h1>
+    <p class="mt-8" style="max-width:560px;">Cada minijuego trabaja una habilidad distinta: respiración, memoria o atención. Los marcados como "Próximamente" ya están definidos en la base de datos del proyecto y se habilitarán en una siguiente entrega.</p>
+
+    <div class="grid grid--3 mt-32" id="games-grid">
+      <!-- Las tarjetas se generan con games.js a partir de los datos de la tabla `minijuegos` -->
+    </div>
+  </div>
+</section>
+
+<section id="view-respiracion" class="view section breathing-screen">
+  <div class="container text-center">
+    <span class="eyebrow">Respira y Gana · Fácil · +50 pts</span>
+    <h1 style="font-size:30px; margin-top:10px;">Respiración 4‑7‑8</h1>
+    <p class="mt-8" style="max-width:480px; margin-left:auto; margin-right:auto;">Inhala 4 segundos, sostén el aire 7 segundos y exhala lento durante 8. Completa 3 ciclos para terminar el ejercicio.</p>
+
+    <div class="breathing-stage mt-32">
+      <svg id="breath-blob" class="breath-blob" width="260" height="260" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="breathGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9F8CFF"/>
+            <stop offset="100%" stop-color="#6ACFFF"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#breathGradient)" d="M155.6,28.7C172.5,45.8,180,73.4,176.8,99.6C173.6,125.8,159.7,150.6,138,165.9C116.3,181.2,86.8,187,61.2,178.6C35.6,170.2,13.9,147.6,5.4,120.7C-3.1,93.8,1.8,62.6,19.6,40.6C37.4,18.6,68.1,5.8,97.7,4.4C127.3,3,138.7,11.6,155.6,28.7Z"/>
+      </svg>
+      <div class="breathing-stage__label" id="breath-label">Lista para empezar</div>
+    </div>
+
+    <div class="row" style="justify-content:center; gap:8px;" id="cycle-dots">
+      <span class="cycle-dot"></span>
+      <span class="cycle-dot"></span>
+      <span class="cycle-dot"></span>
+    </div>
+
+    <div class="mt-32">
+      <button class="btn btn--primary" id="start-btn">Comenzar ejercicio</button>
+      <button class="btn btn--outline hidden" id="stop-btn">Detener</button>
+    </div>
+
+    <div class="card mt-32 hidden" id="complete-card" style="max-width:420px; margin:0 auto;">
+      <h3 style="font-size:20px;">¡Completaste el ejercicio! 🎉</h3>
+      <p class="mt-8">Sumaste <strong>+50 puntos</strong> a tu progreso en CalmaPlay.</p>
+      <div class="row mt-16" style="justify-content:center;">
+        <a class="btn btn--primary" id="continue-link" href="#" data-view="dashboard">Continuar</a>
+        <a class="btn btn--outline" href="#" data-view="juegos">Ver más juegos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view-memoria" class="view section" style="padding-top:48px;">
+  <div class="container text-center">
+    <span class="eyebrow">Memoria Zen · Media · +70 pts</span>
+    <h1 style="font-size:30px; margin-top:10px;">Encuentra las parejas</h1>
+    <p class="mt-8">Voltea dos cartas a la vez. Si coinciden, se quedan descubiertas.</p>
+
+    <div class="memory-stats mt-24">
+      <div><span class="eyebrow">Movimientos</span><div class="memory-stats__value" id="memory-moves">0</div></div>
+      <div><span class="eyebrow">Parejas</span><div class="memory-stats__value" id="memory-matches">0/8</div></div>
+      <div><span class="eyebrow">Tiempo</span><div class="memory-stats__value" id="memory-time">00:00</div></div>
+    </div>
+
+    <div class="memory-grid mt-24" id="memory-grid"></div>
+
+    <button class="btn btn--outline mt-24" id="memory-restart">Reiniciar</button>
+
+    <div class="card mt-24 hidden" id="memory-complete" style="max-width:420px; margin:0 auto;">
+      <h3 style="font-size:20px;">¡Memoria afilada! 🧠</h3>
+      <p class="mt-8" id="memory-summary">Completaste el juego.</p>
+      <p class="mt-8">Sumaste <strong>+70 puntos</strong> a tu progreso.</p>
+      <div class="row mt-16" style="justify-content:center;">
+        <a class="btn btn--primary" id="memory-continue" href="#" data-view="dashboard">Continuar</a>
+        <a class="btn btn--outline" href="#" data-view="juegos">Ver más juegos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view-encuentra" class="view section" style="padding-top:48px;">
+  <div class="container text-center">
+    <span class="eyebrow">Encuentra la Calma · Fácil · +40 pts</span>
+    <h1 style="font-size:30px; margin-top:10px;">Detecta lo tranquilo entre el ruido</h1>
+    <p class="mt-8">Toca solo las hojas 🍃 antes de que se acabe el tiempo. Evita los íconos de alerta: te quitan puntos.</p>
+
+    <div class="memory-stats mt-24">
+      <div><span class="eyebrow">Encontradas</span><div class="memory-stats__value" id="find-score">0/8</div></div>
+      <div><span class="eyebrow">Tiempo</span><div class="memory-stats__value" id="find-time">25</div></div>
+    </div>
+
+    <div class="find-grid mt-24" id="find-grid"></div>
+
+    <button class="btn btn--primary mt-24" id="find-start">Comenzar</button>
+    <button class="btn btn--outline mt-24 hidden" id="find-restart">Intentar de nuevo</button>
+
+    <div class="card mt-24 hidden" id="find-complete" style="max-width:420px; margin:0 auto;">
+      <h3 style="font-size:20px;" id="find-title">¡Lo lograste! 🍃</h3>
+      <p class="mt-8" id="find-summary">Encontraste todas las hojas a tiempo.</p>
+      <div class="row mt-16" style="justify-content:center;">
+        <a class="btn btn--primary" id="find-continue" href="#" data-view="dashboard">Continuar</a>
+        <a class="btn btn--outline" href="#" data-view="juegos">Ver más juegos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view-ejercicios" class="view section" style="padding-top:48px;">
+  <div class="container">
+    <span class="eyebrow">Relajación guiada</span>
+    <h1 style="font-size:32px; margin-top:10px;">Ejercicios para bajar revoluciones</h1>
+    <p class="mt-8" style="max-width:560px;">Elige uno y pulsa “Iniciar” para abrir el temporizador guiado. Estos ejercicios no otorgan puntos: son para tu bienestar, no para competir.</p>
+
+    <div class="exercise-layout mt-32">
+      <div class="grid grid--2" id="exercise-grid"></div>
+
+      <aside class="exercise-timer card hidden" id="exercise-timer">
+        <span class="eyebrow">En curso</span>
+        <h3 id="timer-name" style="font-size:20px; margin-top:8px;">Ejercicio</h3>
+        <div class="exercise-timer__circle" id="timer-circle"></div>
+        <div class="exercise-timer__clock" id="timer-clock">00:00</div>
+        <div class="row mt-16" style="justify-content:center; gap:8px;">
+          <button class="btn btn--outline" id="timer-pause">Pausar</button>
+          <button class="btn btn--ghost" id="timer-reset">Reiniciar</button>
+        </div>
+        <button class="btn btn--primary btn--block mt-16" id="timer-done">Marcar como completado</button>
+        <p class="mt-16 hidden" id="timer-finished" style="text-align:center; color:var(--green); font-weight:800;">Listo, tómate ese momento de calma 🌿</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section id="view-musica" class="view section" style="padding-top:48px;">
+  <div class="container">
+    <span class="eyebrow">Ambientes sonoros</span>
+    <h1 style="font-size:32px; margin-top:10px;">Música y sonidos para acompañar tu calma</h1>
+    <p class="mt-8" style="max-width:600px;">Estos sonidos se generan en vivo en tu navegador (Web Audio API), así que la demo funciona sin necesidad de subir archivos de audio. En la versión final cada tarjeta se puede conectar a un archivo real de la tabla <code>musica</code>.</p>
+
+    <div class="card mt-24 volume-card">
+      <span class="eyebrow">Volumen</span>
+      <input type="range" id="volume-slider" min="0" max="100" value="60">
+    </div>
+
+    <div class="grid grid--2 mt-24" id="music-grid"></div>
+
+    <h2 style="font-size:20px; margin-top:48px;">Más sonidos en camino</h2>
+    <p class="mt-8 muted">Definidos en la base de datos del proyecto, listos para activarse en una próxima entrega.</p>
+    <div class="grid grid--4 mt-16" id="music-soon-grid"></div>
+  </div>
+</section>
+
+<section id="view-recompensas" class="view section" style="padding-top:48px;">
+  <div class="container">
+    <span class="eyebrow">Tu progreso</span>
+    <h1 style="font-size:32px; margin-top:10px;">Recompensas por tu constancia</h1>
+    <p class="mt-8" style="max-width:560px;">Cada minijuego que completas suma puntos. Úsalos para desbloquear temas, avatares y sonidos exclusivos.</p>
+
+    <div class="card mt-24" id="progress-card">
+      <div class="row row--between">
+        <div>
+          <span class="eyebrow">Próxima recompensa</span>
+          <h3 id="progress-title" style="font-size:18px; margin-top:6px;">—</h3>
+        </div>
+        <span class="points-chip" id="progress-points">0 / 0 pts</span>
+      </div>
+      <div class="progress-bar mt-16"><div class="progress-bar__fill" id="progress-fill"></div></div>
+    </div>
+
+    <div class="grid grid--3 mt-32" id="rewards-grid"></div>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <p>CalmaPlay — Proyecto productivo del <strong>Grupo 6</strong> · SENA, Técnico en Programación de Software</p>
+</footer>
+
+<script>
+/* =====================================================================
+   CALMAPLAY — app.js (versión de una sola página)
+   Todo el sitio vive en un único archivo HTML. La "navegación" no
+   recarga la página: simplemente muestra/oculta secciones <section
+   class="view"> y mantiene el estado del usuario (nombre y puntos)
+   en una variable de JavaScript en memoria, sin localStorage ni
+   parámetros en la URL.
+   ===================================================================== */
+
+let session = { nombre: null, puntos: 0, token: null };
+let currentView = 'inicio';
+
+const API_BASE = '/api';
+
+/* ---------------------------------------------------------------------
+   Token de sesión — se guarda en localStorage SOLO el token (no la
+   contraseña ni datos sensibles), para poder "recordar" el login al
+   volver a abrir la página. Esto es seguro porque este archivo corre
+   en el navegador real del usuario, en tu sitio ya desplegado.
+   --------------------------------------------------------------------- */
+function saveToken(token) {
+  try { localStorage.setItem('calmaplay_token', token); } catch (e) { /* almacenamiento no disponible */ }
+}
+function readToken() {
+  try { return localStorage.getItem('calmaplay_token'); } catch (e) { return null; }
+}
+function clearToken() {
+  try { localStorage.removeItem('calmaplay_token'); } catch (e) { /* nada que limpiar */ }
+}
+
+async function apiFetch(path, options = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+  if (session.token) headers['Authorization'] = 'Bearer ' + session.token;
+  const res = await fetch(API_BASE + path, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error de servidor');
+  return data;
+}
+
+// Al cargar la página, si hay un token guardado, intenta restaurar la
+// sesión preguntándole al servidor quién es (sin pedir contraseña).
+async function restoreSession() {
+  const token = readToken();
+  if (!token) return;
+  session.token = token;
+  try {
+    const data = await apiFetch('/perfil');
+    session.nombre = data.nombre;
+    session.puntos = data.puntos;
+    refreshHeader();
+  } catch (e) {
+    // Token vencido o inválido: se limpia y queda como invitado.
+    session = { nombre: null, puntos: 0, token: null };
+    clearToken();
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Cabecera / estado de sesión
+   --------------------------------------------------------------------- */
+function refreshHeader() {
+  const loggedIn = !!session.nombre;
+
+  document.querySelectorAll('[data-points-display]').forEach(function (el) {
+    el.textContent = session.puntos.toLocaleString('es-CO') + ' pts';
+  });
+  document.querySelectorAll('[data-name-display]').forEach(function (el) {
+    el.textContent = session.nombre || 'Invitado';
+  });
+  document.querySelectorAll('[data-guest-hide]').forEach(function (el) {
+    el.classList.toggle('hidden', !loggedIn);
+  });
+  document.querySelectorAll('[data-guest-show]').forEach(function (el) {
+    el.classList.toggle('hidden', loggedIn);
+  });
+
+  document.getElementById('nav-panel').classList.toggle('hidden', !loggedIn);
+  document.getElementById('auth-guest').classList.toggle('hidden', loggedIn);
+  document.getElementById('auth-user').classList.toggle('hidden', !loggedIn);
+}
+
+function loginSuccess(nombre, puntos, token) {
+  session.nombre = nombre;
+  session.puntos = puntos;
+  session.token = token;
+  saveToken(token);
+  refreshHeader();
+  navigateTo('dashboard');
+}
+
+function logout() {
+  if (session.token) {
+    apiFetch('/logout', { method: 'POST' }).catch(function () { /* no pasa nada si falla */ });
+  }
+  session = { nombre: null, puntos: 0, token: null };
+  clearToken();
+  refreshHeader();
+  navigateTo('inicio');
+}
+
+/* ---------------------------------------------------------------------
+   Navegación entre secciones
+   --------------------------------------------------------------------- */
+function navigateTo(view) {
+  const target = document.getElementById('view-' + view);
+  if (!target) return;
+
+  // Detiene cualquier minijuego en curso antes de cambiar de sección,
+  // para que no siga sumando tiempo o puntos en segundo plano.
+  if (currentView === 'respiracion') respStop();
+  if (currentView === 'memoria') clearInterval(memState.timerId);
+  if (currentView === 'encuentra') { findState.activo = false; clearInterval(findState.timerId); }
+
+  document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('is-active'); });
+  target.classList.add('is-active');
+  currentView = view;
+
+  document.querySelectorAll('.nav-pill [data-view]').forEach(function (el) {
+    el.classList.toggle('is-active', el.dataset.view === view);
+  });
+
+  window.scrollTo(0, 0);
+
+  // Cada juego/sección se reinicia a su estado inicial al entrar.
+  if (view === 'respiracion') respResetUI();
+  if (view === 'memoria') memReset();
+  if (view === 'encuentra') findResetUI();
+  if (view === 'recompensas') renderRewards();
+  if (view === 'dashboard') refreshHeader();
+}
+
+document.addEventListener('click', function (e) {
+  const el = e.target.closest('[data-view]');
+  if (el) {
+    e.preventDefault();
+    navigateTo(el.dataset.view);
+  }
+});
+
+/* ---------------------------------------------------------------------
+   Persistencia de puntos al completar un minijuego
+   --------------------------------------------------------------------- */
+async function registrarProgreso(slug, puntosLocal) {
+  if (!session.token) {
+    // Invitado: el progreso solo dura mientras esta pestaña esté abierta.
+    session.puntos += puntosLocal;
+    refreshHeader();
+    return;
+  }
+  try {
+    const data = await apiFetch('/progreso', {
+      method: 'POST',
+      body: JSON.stringify({ minijuego_slug: slug })
+    });
+    session.puntos = data.puntos;
+    refreshHeader();
+  } catch (err) {
+    console.error('No se pudo guardar el progreso en el servidor:', err.message);
+    session.puntos += puntosLocal; // no perder el punto del juego aunque falle la red
+    refreshHeader();
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Login / registro (demo sin backend)
+   --------------------------------------------------------------------- */
+function initLogin() {
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const formLogin = document.getElementById('form-login');
+  const formRegister = document.getElementById('form-register');
+
+  tabLogin.addEventListener('click', function () {
+    tabLogin.classList.add('is-active');
+    tabRegister.classList.remove('is-active');
+    formLogin.classList.remove('hidden');
+    formRegister.classList.add('hidden');
+  });
+
+  tabRegister.addEventListener('click', function () {
+    tabRegister.classList.add('is-active');
+    tabLogin.classList.remove('is-active');
+    formRegister.classList.remove('hidden');
+    formLogin.classList.add('hidden');
+  });
+
+  formLogin.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+    const error = document.getElementById('login-error');
+
+    if (!email || !pass) {
+      error.textContent = 'Completa tu correo y contraseña para continuar.';
+      error.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      const data = await apiFetch('/login', {
+        method: 'POST',
+        body: JSON.stringify({ correo: email, contrasena: pass })
+      });
+      error.classList.add('hidden');
+      loginSuccess(data.nombre, data.puntos, data.token);
+      formLogin.reset();
+    } catch (err) {
+      error.textContent = err.message || 'Correo o contraseña incorrectos.';
+      error.classList.remove('hidden');
+    }
+  });
+
+  formRegister.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const nombre = document.getElementById('reg-nombre').value.trim();
+    const edad = document.getElementById('reg-edad').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const pass = document.getElementById('reg-pass').value.trim();
+    const error = document.getElementById('register-error');
+
+    if (!nombre || !edad || !email || pass.length < 4) {
+      error.textContent = 'Revisa los campos: faltan datos o la contraseña es muy corta.';
+      error.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      const data = await apiFetch('/registro', {
+        method: 'POST',
+        body: JSON.stringify({ nombre, edad: Number(edad), correo: email, contrasena: pass })
+      });
+      error.classList.add('hidden');
+      loginSuccess(data.nombre, data.puntos, data.token);
+      formRegister.reset();
+    } catch (err) {
+      error.textContent = err.message || 'No se pudo crear la cuenta.';
+      error.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+    logout();
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Catálogo de minijuegos
+   --------------------------------------------------------------------- */
+const MINIJUEGOS = [
+  { nombre: 'Respira y Gana', icono: '🌬️', descripcion: 'Sigue el círculo y respira en 4 tiempos para soltar tensión.', dificultad: 'easy', puntos: 50, jugable: true, view: 'respiracion' },
+  { nombre: 'Memoria Zen', icono: '🧩', descripcion: 'Encuentra las parejas de íconos antes de que se acabe el tiempo.', dificultad: 'medium', puntos: 70, jugable: true, view: 'memoria' },
+  { nombre: 'Encuentra la Calma', icono: '🔍', descripcion: 'Detecta los íconos tranquilos entre el ruido visual.', dificultad: 'easy', puntos: 40, jugable: true, view: 'encuentra' },
+  { nombre: 'Laberinto Relax', icono: '🧭', descripcion: 'Juego de concentración para guiar al personaje sin prisa.', dificultad: 'hard', puntos: 100, jugable: false },
+  { nombre: 'Colores Calmantes', icono: '🎨', descripcion: 'Relajación visual combinando tonos suaves.', dificultad: 'easy', puntos: 30, jugable: false },
+  { nombre: 'Sonidos Naturales', icono: '🦋', descripcion: 'Juego auditivo para identificar paisajes sonoros.', dificultad: 'medium', puntos: 60, jugable: false },
+  { nombre: 'Ritmo Mental', icono: '🎶', descripcion: 'Sigue un patrón musical relajante.', dificultad: 'medium', puntos: 80, jugable: false },
+  { nombre: 'Puzzle Tranquilo', icono: '🧶', descripcion: 'Rompecabezas pensado para bajar revoluciones.', dificultad: 'medium', puntos: 75, jugable: false },
+  { nombre: 'Meditación Guiada', icono: '🪷', descripcion: 'Actividad interactiva de atención plena.', dificultad: 'easy', puntos: 45, jugable: false },
+  { nombre: 'Respiración Profunda', icono: '💨', descripcion: 'Variante extendida del ejercicio de respiración.', dificultad: 'easy', puntos: 55, jugable: false }
+];
+
+const DIFFICULTY_LABEL = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
+
+function renderGamesGrid() {
+  const grid = document.getElementById('games-grid');
+  grid.innerHTML = MINIJUEGOS.map(function (g) {
+    const tagClass = g.jugable ? 'tag--' + g.dificultad : 'tag--soon';
+    const tagLabel = g.jugable ? DIFFICULTY_LABEL[g.dificultad] : 'Próximamente';
+    const action = g.jugable
+      ? '<a class="btn btn--primary btn--block" href="#" data-view="' + g.view + '">Jugar</a>'
+      : '<button class="btn btn--block" disabled>Próximamente</button>';
+
+    return (
+      '<div class="card game-card">' +
+        '<div class="row row--between">' +
+          '<div class="game-card__icon">' + g.icono + '</div>' +
+          '<span class="tag ' + tagClass + '">' + tagLabel + '</span>' +
+        '</div>' +
+        '<h3 style="font-size:18px; margin-top:16px;">' + g.nombre + '</h3>' +
+        '<p class="mt-8" style="font-size:14px; min-height:42px;">' + g.descripcion + '</p>' +
+        '<div class="row row--between mt-16">' +
+          '<span class="points-chip" style="font-size:12px;">+' + g.puntos + ' pts</span>' +
+        '</div>' +
+        '<div class="mt-16">' + action + '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+/* ---------------------------------------------------------------------
+   Minijuego: Respira y Gana
+   --------------------------------------------------------------------- */
+const respState = { running: false, timeoutId: null };
+const RESP_TOTAL_CICLOS = 3;
+const RESP_FASES = [
+  { nombre: 'Inhala', duracion: 4000, escala: 1.35 },
+  { nombre: 'Sostén', duracion: 7000, escala: 1.35 },
+  { nombre: 'Exhala', duracion: 8000, escala: 1 }
+];
+const RESP_PUNTOS = 50;
+
+function respSetBlob(scale, durationMs) {
+  const blob = document.getElementById('breath-blob');
+  blob.style.transition = 'transform ' + durationMs + 'ms ease-in-out';
+  blob.style.transform = 'scale(' + scale + ')';
+}
+
+function respRunPhase(cicloIndex, faseIndex) {
+  if (!respState.running) return;
+  const label = document.getElementById('breath-label');
+  const dots = document.querySelectorAll('#cycle-dots .cycle-dot');
+
+  if (faseIndex >= RESP_FASES.length) {
+    dots[cicloIndex].classList.add('is-done');
+    const nextCiclo = cicloIndex + 1;
+    if (nextCiclo >= RESP_TOTAL_CICLOS) { respFinish(); return; }
+    respState.timeoutId = setTimeout(function () { respRunPhase(nextCiclo, 0); }, 400);
+    return;
+  }
+
+  const fase = RESP_FASES[faseIndex];
+  label.textContent = fase.nombre + ' · ciclo ' + (cicloIndex + 1) + '/' + RESP_TOTAL_CICLOS;
+  respSetBlob(fase.escala, fase.duracion);
+  respState.timeoutId = setTimeout(function () { respRunPhase(cicloIndex, faseIndex + 1); }, fase.duracion);
+}
+
+function respStart() {
+  respState.running = true;
+  document.getElementById('start-btn').classList.add('hidden');
+  document.getElementById('stop-btn').classList.remove('hidden');
+  document.getElementById('complete-card').classList.add('hidden');
+  document.querySelectorAll('#cycle-dots .cycle-dot').forEach(function (d) { d.classList.remove('is-done'); });
+  respRunPhase(0, 0);
+}
+
+function respStop() {
+  respState.running = false;
+  clearTimeout(respState.timeoutId);
+}
+
+function respResetUI() {
+  respStop();
+  document.getElementById('breath-label').textContent = 'Lista para empezar';
+  respSetBlob(1, 300);
+  document.getElementById('start-btn').classList.remove('hidden');
+  document.getElementById('stop-btn').classList.add('hidden');
+  document.getElementById('complete-card').classList.add('hidden');
+  document.querySelectorAll('#cycle-dots .cycle-dot').forEach(function (d) { d.classList.remove('is-done'); });
+}
+
+function respFinish() {
+  respState.running = false;
+  document.getElementById('breath-label').textContent = '¡Bien hecho!';
+  respSetBlob(1, 600);
+  document.getElementById('stop-btn').classList.add('hidden');
+  document.getElementById('start-btn').classList.add('hidden');
+  document.getElementById('complete-card').classList.remove('hidden');
+  registrarProgreso('respiracion', RESP_PUNTOS);
+}
+
+function initRespiracion() {
+  document.getElementById('start-btn').addEventListener('click', respStart);
+  document.getElementById('stop-btn').addEventListener('click', respResetUI);
+}
+
+/* ---------------------------------------------------------------------
+   Minijuego: Memoria Zen
+   --------------------------------------------------------------------- */
+const memState = { cards: [], flipped: [], matched: 0, moves: 0, locked: false, seconds: 0, timerId: null };
+const MEM_ICONOS = ['🌙', '☁️', '🌿', '💧', '🌸', '⭐', '🌊', '🍃'];
+const MEM_PUNTOS = 70;
+
+function memShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function memFormatTime(s) {
+  const m = String(Math.floor(s / 60)).padStart(2, '0');
+  const r = String(s % 60).padStart(2, '0');
+  return m + ':' + r;
+}
+
+function memBuildCard(icono) {
+  const card = document.createElement('button');
+  card.className = 'memory-card';
+  card.setAttribute('aria-label', 'Carta volteada hacia abajo');
+  card.dataset.icono = icono;
+  card.innerHTML =
+    '<span class="memory-card__face memory-card__face--back">✨</span>' +
+    '<span class="memory-card__face memory-card__face--front">' + icono + '</span>';
+  card.addEventListener('click', function () { memOnCardClick(card); });
+  return card;
+}
+
+function memRender() {
+  const grid = document.getElementById('memory-grid');
+  grid.innerHTML = '';
+  memState.cards.forEach(function (icono) { grid.appendChild(memBuildCard(icono)); });
+}
+
+function memReset() {
+  clearInterval(memState.timerId);
+  memState.cards = memShuffle(MEM_ICONOS.concat(MEM_ICONOS));
+  memState.flipped = [];
+  memState.matched = 0;
+  memState.moves = 0;
+  memState.locked = false;
+  memState.seconds = 0;
+  document.getElementById('memory-moves').textContent = '0';
+  document.getElementById('memory-matches').textContent = '0/' + MEM_ICONOS.length;
+  document.getElementById('memory-time').textContent = '00:00';
+  document.getElementById('memory-complete').classList.add('hidden');
+  memRender();
+  memState.timerId = setInterval(function () {
+    memState.seconds += 1;
+    document.getElementById('memory-time').textContent = memFormatTime(memState.seconds);
+  }, 1000);
+}
+
+function memOnCardClick(card) {
+  if (memState.locked) return;
+  if (card.classList.contains('is-flipped') || card.classList.contains('is-matched')) return;
+
+  card.classList.add('is-flipped');
+  memState.flipped.push(card);
+
+  if (memState.flipped.length === 2) {
+    memState.moves += 1;
+    document.getElementById('memory-moves').textContent = String(memState.moves);
+    memState.locked = true;
+
+    const [a, b] = memState.flipped;
+    if (a.dataset.icono === b.dataset.icono) {
+      setTimeout(function () {
+        a.classList.add('is-matched');
+        b.classList.add('is-matched');
+        memState.matched += 1;
+        document.getElementById('memory-matches').textContent = memState.matched + '/' + MEM_ICONOS.length;
+        memState.flipped = [];
+        memState.locked = false;
+        if (memState.matched === MEM_ICONOS.length) memFinish();
+      }, 350);
+    } else {
+      setTimeout(function () {
+        a.classList.remove('is-flipped');
+        b.classList.remove('is-flipped');
+        memState.flipped = [];
+        memState.locked = false;
+      }, 700);
+    }
+  }
+}
+
+function memFinish() {
+  clearInterval(memState.timerId);
+  document.getElementById('memory-summary').textContent =
+    'Lo lograste en ' + memState.moves + ' movimientos y ' + memFormatTime(memState.seconds) + '.';
+  document.getElementById('memory-complete').classList.remove('hidden');
+  registrarProgreso('memoria', MEM_PUNTOS);
+}
+
+function initMemoria() {
+  document.getElementById('memory-restart').addEventListener('click', memReset);
+}
+
+/* ---------------------------------------------------------------------
+   Minijuego: Encuentra la Calma
+   --------------------------------------------------------------------- */
+const findState = { found: 0, tiempo: 25, timerId: null, activo: false };
+const FIND_CALM_ICON = '🍃';
+const FIND_BUSY_ICONS = ['⚡', '⏰', '❗', '📵', '😣', '📈'];
+const FIND_TOTAL_CELDAS = 30;
+const FIND_TOTAL_CALMA = 8;
+const FIND_TIEMPO_INICIAL = 25;
+const FIND_PUNTOS = 40;
+
+function findShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function findBuildCells() {
+  const cells = [];
+  for (let i = 0; i < FIND_TOTAL_CALMA; i++) cells.push({ type: 'calm', icon: FIND_CALM_ICON });
+  for (let i = 0; i < FIND_TOTAL_CELDAS - FIND_TOTAL_CALMA; i++) {
+    cells.push({ type: 'busy', icon: FIND_BUSY_ICONS[Math.floor(Math.random() * FIND_BUSY_ICONS.length)] });
+  }
+  return findShuffle(cells);
+}
+
+function findOnCellClick(btn) {
+  if (!findState.activo || btn.classList.contains('is-done')) return;
+
+  if (btn.dataset.type === 'calm') {
+    btn.classList.add('is-done', 'is-calm');
+    findState.found += 1;
+    document.getElementById('find-score').textContent = findState.found + '/' + FIND_TOTAL_CALMA;
+    if (findState.found === FIND_TOTAL_CALMA) findFinish(true);
+  } else {
+    btn.classList.add('is-shake');
+    findState.tiempo = Math.max(0, findState.tiempo - 2);
+    document.getElementById('find-time').textContent = String(findState.tiempo);
+    setTimeout(function () { btn.classList.remove('is-shake'); }, 350);
+    if (findState.tiempo === 0) findFinish(false);
+  }
+}
+
+function findRenderGrid() {
+  const grid = document.getElementById('find-grid');
+  grid.innerHTML = '';
+  findBuildCells().forEach(function (cell) {
+    const btn = document.createElement('button');
+    btn.className = 'find-cell';
+    btn.dataset.type = cell.type;
+    btn.textContent = cell.icon;
+    btn.addEventListener('click', function () { findOnCellClick(btn); });
+    grid.appendChild(btn);
+  });
+}
+
+function findStartGame() {
+  findState.found = 0;
+  findState.tiempo = FIND_TIEMPO_INICIAL;
+  findState.activo = true;
+  document.getElementById('find-score').textContent = '0/' + FIND_TOTAL_CALMA;
+  document.getElementById('find-time').textContent = String(findState.tiempo);
+  document.getElementById('find-complete').classList.add('hidden');
+  document.getElementById('find-start').classList.add('hidden');
+  document.getElementById('find-restart').classList.add('hidden');
+  findRenderGrid();
+  clearInterval(findState.timerId);
+  findState.timerId = setInterval(function () {
+    findState.tiempo -= 1;
+    document.getElementById('find-time').textContent = String(Math.max(findState.tiempo, 0));
+    if (findState.tiempo <= 0) findFinish(findState.found === FIND_TOTAL_CALMA);
+  }, 1000);
+}
+
+function findFinish(exito) {
+  findState.activo = false;
+  clearInterval(findState.timerId);
+  document.getElementById('find-restart').classList.remove('hidden');
+  document.getElementById('find-complete').classList.remove('hidden');
+
+  const titleEl = document.getElementById('find-title');
+  const summaryEl = document.getElementById('find-summary');
+  const continueLink = document.getElementById('find-continue');
+
+  if (exito) {
+    titleEl.textContent = '¡Lo lograste! 🍃';
+    summaryEl.textContent = 'Encontraste las ' + FIND_TOTAL_CALMA + ' hojas a tiempo.';
+    continueLink.classList.remove('hidden');
+    registrarProgreso('encuentra', FIND_PUNTOS);
+  } else {
+    titleEl.textContent = 'Casi lo logras 🙂';
+    summaryEl.textContent = 'Encontraste ' + findState.found + ' de ' + FIND_TOTAL_CALMA + ' hojas. Inténtalo de nuevo, vas mejorando tu concentración.';
+    continueLink.classList.add('hidden');
+  }
+}
+
+function findResetUI() {
+  findState.activo = false;
+  clearInterval(findState.timerId);
+  document.getElementById('find-grid').innerHTML = '';
+  document.getElementById('find-score').textContent = '0/' + FIND_TOTAL_CALMA;
+  document.getElementById('find-time').textContent = String(FIND_TIEMPO_INICIAL);
+  document.getElementById('find-complete').classList.add('hidden');
+  document.getElementById('find-start').classList.remove('hidden');
+  document.getElementById('find-restart').classList.add('hidden');
+}
+
+function initEncuentra() {
+  document.getElementById('find-start').addEventListener('click', findStartGame);
+  document.getElementById('find-restart').addEventListener('click', findStartGame);
+}
+
+/* ---------------------------------------------------------------------
+   Ejercicios de relajación
+   --------------------------------------------------------------------- */
+const EJERCICIOS = [
+  { nombre: 'Respiración 4-7-8', descripcion: 'Ejercicio respiratorio para soltar tensión rápido.', minutos: 5 },
+  { nombre: 'Relajación Muscular', descripcion: 'Tensiona y suelta cada grupo muscular para relajar el cuerpo.', minutos: 10 },
+  { nombre: 'Meditación Básica', descripcion: 'Relajación mental guiada, ideal antes de estudiar.', minutos: 15 },
+  { nombre: 'Visualización Positiva', descripcion: 'Imaginación guiada hacia un lugar tranquilo.', minutos: 8 },
+  { nombre: 'Estiramiento', descripcion: 'Relajación física suave para aflojar el cuerpo.', minutos: 12 },
+  { nombre: 'Respiración Profunda', descripcion: 'Control emocional a través de respiraciones largas.', minutos: 6 },
+  { nombre: 'Mindfulness', descripcion: 'Atención plena al momento presente.', minutos: 20 },
+  { nombre: 'Control de Ansiedad', descripcion: 'Relajación emocional para momentos de presión.', minutos: 9 },
+  { nombre: 'Concentración Mental', descripcion: 'Mejora la atención antes de una tarea exigente.', minutos: 7 },
+  { nombre: 'Pausa Activa', descripcion: 'Descanso saludable entre sesiones de estudio.', minutos: 5 }
+];
+
+const exerciseTimer = { interval: null, secondsLeft: 0, totalSeconds: 0, paused: false };
+
+function renderExerciseGrid() {
+  const grid = document.getElementById('exercise-grid');
+  grid.innerHTML = EJERCICIOS.map(function (ej, index) {
+    return (
+      '<div class="card exercise-card">' +
+        '<div class="row row--between"><span class="tag tag--easy">' + ej.minutos + ' min</span></div>' +
+        '<h3 style="font-size:18px; margin-top:14px;">' + ej.nombre + '</h3>' +
+        '<p class="mt-8" style="font-size:14px; min-height:42px;">' + ej.descripcion + '</p>' +
+        '<button class="btn btn--outline btn--block mt-16" data-index="' + index + '">Iniciar</button>' +
+      '</div>'
+    );
+  }).join('');
+
+  grid.querySelectorAll('button[data-index]').forEach(function (btn) {
+    btn.addEventListener('click', function () { openExerciseTimer(EJERCICIOS[Number(btn.dataset.index)]); });
+  });
+}
+
+function exerciseFormatClock(s) {
+  const m = String(Math.floor(s / 60)).padStart(2, '0');
+  const r = String(s % 60).padStart(2, '0');
+  return m + ':' + r;
+}
+
+function openExerciseTimer(ejercicio) {
+  document.getElementById('exercise-timer').classList.remove('hidden');
+  document.getElementById('timer-name').textContent = ejercicio.nombre;
+  document.getElementById('timer-finished').classList.add('hidden');
+  exerciseTimer.totalSeconds = ejercicio.minutos * 60;
+  exerciseTimer.secondsLeft = exerciseTimer.totalSeconds;
+  exerciseTimer.paused = false;
+  document.getElementById('timer-pause').textContent = 'Pausar';
+  updateExerciseClock();
+  startExerciseInterval();
+}
+
+function updateExerciseClock() {
+  document.getElementById('timer-clock').textContent = exerciseFormatClock(exerciseTimer.secondsLeft);
+  const progress = exerciseTimer.totalSeconds ? 1 - exerciseTimer.secondsLeft / exerciseTimer.totalSeconds : 0;
+  document.getElementById('timer-circle').style.transform = 'scale(' + (1 + progress * 0.15) + ')';
+}
+
+function startExerciseInterval() {
+  clearInterval(exerciseTimer.interval);
+  exerciseTimer.interval = setInterval(function () {
+    if (exerciseTimer.paused) return;
+    exerciseTimer.secondsLeft -= 1;
+    if (exerciseTimer.secondsLeft <= 0) {
+      exerciseTimer.secondsLeft = 0;
+      updateExerciseClock();
+      finishExercise();
+      return;
+    }
+    updateExerciseClock();
+  }, 1000);
+}
+
+function finishExercise() {
+  clearInterval(exerciseTimer.interval);
+  document.getElementById('timer-finished').classList.remove('hidden');
+}
+
+function initEjercicios() {
+  renderExerciseGrid();
+  document.getElementById('timer-pause').addEventListener('click', function () {
+    exerciseTimer.paused = !exerciseTimer.paused;
+    this.textContent = exerciseTimer.paused ? 'Reanudar' : 'Pausar';
+  });
+  document.getElementById('timer-reset').addEventListener('click', function () {
+    exerciseTimer.secondsLeft = exerciseTimer.totalSeconds;
+    exerciseTimer.paused = false;
+    document.getElementById('timer-pause').textContent = 'Pausar';
+    document.getElementById('timer-finished').classList.add('hidden');
+    updateExerciseClock();
+    startExerciseInterval();
+  });
+  document.getElementById('timer-done').addEventListener('click', finishExercise);
+}
+
+/* ---------------------------------------------------------------------
+   Música — sintetizada con Web Audio API
+   --------------------------------------------------------------------- */
+const PISTAS = [
+  { id: 'bosque', titulo: 'Bosque Tranquilo', tipo: 'Naturaleza', motor: 'bosque' },
+  { id: 'lluvia', titulo: 'Lluvia Suave', tipo: 'Relajante', motor: 'lluvia' },
+  { id: 'mar', titulo: 'Mar Pacífico', tipo: 'Naturaleza', motor: 'mar' },
+  { id: 'piano', titulo: 'Piano Relax', tipo: 'Instrumental', motor: 'piano' }
+];
+const PISTAS_PROXIMAS = ['Noche Serena', 'Meditación Zen', 'Viento Calmante', 'Río Relajante', 'Sonidos del Bosque', 'Calma Interior'];
+
+let audioCtx = null;
+let masterGain = null;
+let activeEngine = null;
+let activeTrackId = null;
+
+function ensureAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.6;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function createNoiseBuffer(seconds) {
+  const length = audioCtx.sampleRate * seconds;
+  const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+  return buffer;
+}
+
+function engineLluvia() {
+  const source = audioCtx.createBufferSource();
+  source.buffer = createNoiseBuffer(2);
+  source.loop = true;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass'; filter.frequency.value = 1200; filter.Q.value = 0.6;
+  const gain = audioCtx.createGain(); gain.gain.value = 0.5;
+  source.connect(filter).connect(gain).connect(masterGain);
+  source.start();
+  return { stop: function () { try { source.stop(); } catch (e) {} } };
+}
+
+function engineMar() {
+  const source = audioCtx.createBufferSource();
+  source.buffer = createNoiseBuffer(3);
+  source.loop = true;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 700;
+  const gain = audioCtx.createGain(); gain.gain.value = 0.55;
+  const lfo = audioCtx.createOscillator(); lfo.frequency.value = 0.12;
+  const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0.35;
+  lfo.connect(lfoGain).connect(gain.gain); lfo.start();
+  source.connect(filter).connect(gain).connect(masterGain);
+  source.start();
+  return { stop: function () { try { source.stop(); } catch (e) {} try { lfo.stop(); } catch (e) {} } };
+}
+
+function engineBosque() {
+  const padOsc1 = audioCtx.createOscillator();
+  const padOsc2 = audioCtx.createOscillator();
+  padOsc1.type = 'sine'; padOsc2.type = 'sine';
+  padOsc1.frequency.value = 196; padOsc2.frequency.value = 196 * 1.5;
+  const padGain = audioCtx.createGain(); padGain.gain.value = 0.12;
+  padOsc1.connect(padGain); padOsc2.connect(padGain); padGain.connect(masterGain);
+  padOsc1.start(); padOsc2.start();
+
+  let chirpTimeout;
+  function chirp() {
+    const osc = audioCtx.createOscillator(); osc.type = 'sine';
+    const g = audioCtx.createGain(); g.gain.value = 0;
+    osc.connect(g).connect(masterGain);
+    const now = audioCtx.currentTime;
+    const base = 1400 + Math.random() * 800;
+    osc.frequency.setValueAtTime(base, now);
+    osc.frequency.exponentialRampToValueAtTime(base * 1.4, now + 0.12);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.05, now + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+    osc.start(now); osc.stop(now + 0.32);
+    chirpTimeout = setTimeout(chirp, 1200 + Math.random() * 2200);
+  }
+  chirp();
+
+  return { stop: function () { clearTimeout(chirpTimeout); try { padOsc1.stop(); padOsc2.stop(); } catch (e) {} } };
+}
+
+function enginePiano() {
+  const padOsc = audioCtx.createOscillator();
+  padOsc.type = 'triangle'; padOsc.frequency.value = 130;
+  const padGain = audioCtx.createGain(); padGain.gain.value = 0.05;
+  padOsc.connect(padGain).connect(masterGain); padOsc.start();
+
+  const escala = [261.6, 293.7, 329.6, 392.0, 440.0];
+  let noteTimeout;
+  function pluck() {
+    const osc = audioCtx.createOscillator(); osc.type = 'sine';
+    const g = audioCtx.createGain();
+    osc.frequency.value = escala[Math.floor(Math.random() * escala.length)];
+    osc.connect(g).connect(masterGain);
+    const now = audioCtx.currentTime;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+    osc.start(now); osc.stop(now + 1.7);
+    noteTimeout = setTimeout(pluck, 1500 + Math.random() * 1800);
+  }
+  pluck();
+
+  return { stop: function () { clearTimeout(noteTimeout); try { padOsc.stop(); } catch (e) {} } };
+}
+
+const ENGINES = { lluvia: engineLluvia, mar: engineMar, bosque: engineBosque, piano: enginePiano };
+
+function renderMusicGrid() {
+  const grid = document.getElementById('music-grid');
+  grid.innerHTML = PISTAS.map(function (p) {
+    return (
+      '<div class="card music-card">' +
+        '<div class="row row--between">' +
+          '<div><div class="eyebrow">' + p.tipo + '</div><h3 style="font-size:18px; margin-top:6px;">' + p.titulo + '</h3></div>' +
+          '<button class="music-card__play" data-id="' + p.id + '" aria-label="Reproducir ' + p.titulo + '">▶</button>' +
+        '</div>' +
+        '<div class="music-eq" id="eq-' + p.id + '"><span></span><span></span><span></span><span></span><span></span></div>' +
+      '</div>'
+    );
+  }).join('');
+
+  grid.querySelectorAll('.music-card__play').forEach(function (btn) {
+    btn.addEventListener('click', function () { toggleTrack(btn.dataset.id); });
+  });
+
+  document.getElementById('music-soon-grid').innerHTML = PISTAS_PROXIMAS.map(function (titulo) {
+    return '<div class="card" style="padding:18px;"><span class="tag tag--soon">Próximamente</span><h4 style="font-size:15px; margin-top:10px;">' + titulo + '</h4></div>';
+  }).join('');
+}
+
+function setPlayingUI(id, playing) {
+  PISTAS.forEach(function (p) {
+    const btn = document.querySelector('.music-card__play[data-id="' + p.id + '"]');
+    const eq = document.getElementById('eq-' + p.id);
+    const isThis = p.id === id;
+    if (btn) btn.textContent = isThis && playing ? '⏸' : '▶';
+    if (eq) eq.classList.toggle('is-playing', isThis && playing);
+  });
+}
+
+function toggleTrack(id) {
+  ensureAudioContext();
+  if (activeTrackId === id) {
+    activeEngine.stop(); activeEngine = null; activeTrackId = null;
+    setPlayingUI(id, false);
+    return;
+  }
+  if (activeEngine) { activeEngine.stop(); activeEngine = null; }
+  const pista = PISTAS.find(function (p) { return p.id === id; });
+  activeEngine = ENGINES[pista.motor]();
+  activeTrackId = id;
+  setPlayingUI(id, true);
+}
+
+function initMusica() {
+  renderMusicGrid();
+  document.getElementById('volume-slider').addEventListener('input', function (e) {
+    ensureAudioContext();
+    masterGain.gain.value = Number(e.target.value) / 100;
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Recompensas
+   --------------------------------------------------------------------- */
+const RECOMPENSAS = [
+  { nombre: 'Tema Azul', descripcion: 'Nuevo tema visual', puntos: 100, icono: '🎨' },
+  { nombre: 'Fondo Relajante', descripcion: 'Nuevo fondo de pantalla', puntos: 120, icono: '🖼️' },
+  { nombre: 'Tema Morado', descripcion: 'Tema relajante', puntos: 150, icono: '🟣' },
+  { nombre: 'Insignia Calm', descripcion: 'Insignia especial', puntos: 180, icono: '🎖️' },
+  { nombre: 'Avatar Zen', descripcion: 'Avatar especial', puntos: 200, icono: '🧘' },
+  { nombre: 'Sonido Premium', descripcion: 'Música exclusiva', puntos: 250, icono: '🎧' },
+  { nombre: 'MiniJuego Secreto', descripcion: 'Juego oculto', puntos: 300, icono: '🗝️' },
+  { nombre: 'Perfil Dorado', descripcion: 'Decoración premium', puntos: 350, icono: '👑' },
+  { nombre: 'Música VIP', descripcion: 'Sonidos exclusivos', puntos: 400, icono: '🎼' },
+  { nombre: 'Nivel Maestro', descripcion: 'Reconocimiento especial', puntos: 500, icono: '🌟' }
+];
+
+function paintRewards(recompensas, puntosActuales) {
+  const grid = document.getElementById('rewards-grid');
+  grid.innerHTML = recompensas.map(function (r) {
+    const desbloqueada = r.desbloqueada;
+    return (
+      '<div class="card reward-card ' + (desbloqueada ? 'is-unlocked' : 'is-locked') + '">' +
+        '<div class="reward-card__icon">' + (desbloqueada ? r.icono : '🔒') + '</div>' +
+        '<h3 style="font-size:17px; margin-top:14px;">' + r.nombre + '</h3>' +
+        '<p class="mt-8" style="font-size:13px;">' + r.descripcion + '</p>' +
+        '<div class="row row--between mt-16">' +
+          '<span class="tag ' + (desbloqueada ? 'tag--easy' : 'tag--soon') + '">' + r.puntos + ' pts</span>' +
+          (desbloqueada ? '<span style="color:var(--green); font-weight:800; font-size:13px;">Desbloqueada</span>' : '') +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  const siguiente = recompensas.find(function (r) { return !r.desbloqueada; });
+  if (siguiente) {
+    document.getElementById('progress-title').textContent = siguiente.nombre;
+    document.getElementById('progress-points').textContent = puntosActuales + ' / ' + siguiente.puntos + ' pts';
+    document.getElementById('progress-fill').style.width = Math.min(100, Math.round((puntosActuales / siguiente.puntos) * 100)) + '%';
+  } else {
+    document.getElementById('progress-title').textContent = '¡Desbloqueaste todas las recompensas!';
+    document.getElementById('progress-points').textContent = puntosActuales + ' pts';
+    document.getElementById('progress-fill').style.width = '100%';
+  }
+}
+
+async function renderRewards() {
+  try {
+    // Fuente de verdad: el servidor calcula con el total real de puntos.
+    const data = await apiFetch('/recompensas');
+    const recompensas = data.recompensas.map(function (r) {
+      return { nombre: r.nombre, descripcion: r.descripcion, puntos: r.puntos_necesarios, icono: r.icono, desbloqueada: r.desbloqueada };
+    });
+    paintRewards(recompensas, data.puntos);
+  } catch (err) {
+    // Respaldo si la función todavía no está desplegada: usa el catálogo local.
+    console.error('No se pudo cargar /api/recompensas, usando catálogo local:', err.message);
+    const recompensas = RECOMPENSAS.map(function (r) {
+      return Object.assign({}, r, { desbloqueada: session.puntos >= r.puntos });
+    });
+    paintRewards(recompensas, session.puntos);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Arranque
+   --------------------------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', async function () {
+  initLogin();
+  renderGamesGrid();
+  initRespiracion();
+  initMemoria();
+  initEncuentra();
+  initEjercicios();
+  initMusica();
+  refreshHeader();
+  navigateTo('inicio');
+  await restoreSession(); // si había un token guardado, recupera nombre y puntos
+  renderRewards();
+});
+
+</script>
+</body>
+</html>

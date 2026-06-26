@@ -1,0 +1,6 @@
+# Ajusta "publish" si tu index.html no está en la raíz del repositorio.
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"

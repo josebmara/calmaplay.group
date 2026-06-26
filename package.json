@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "CalmaPlay — bienestar y minijuegos para estudiantes (SENA, Grupo 6)",
   "dependencies": {
+    "@netlify/database": "^1.1.0",
     "bcryptjs": "^2.4.3"
   }
 }
